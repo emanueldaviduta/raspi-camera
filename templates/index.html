@@ -25,16 +25,6 @@
             text-align: center
         }
     </style>
-
-    <script>
-        function updateSettings() {
-            const shutterSpeed = document.getElementById('shutterSpeed').value;
-            const gain = document.getElementById('gain').value;
-            fetch(`/update_settings?shutter_speed=${shutterSpeed}&gain=${gain}`, {
-                method: 'POST'
-            });
-        }
-    </script>
 </head>
 
 <body class="flex">
@@ -49,11 +39,14 @@
     </div>
 
     <div class="center">
-        <label for="shutterSpeed">Shutter Speed:</label>
-        <input type="range" id="shutterSpeed" name="shutterSpeed" min="0" max="100" value="{shutter_speed}"
-            oninput="updateSettings()">
-        <label for="gain">Gain:</label>
-        <input type="range" id="gain" name="gain" min="0" max="10" step="0.1" value="{gain}" oninput="updateSettings()">
+        <button onclick="fetch('/update_settings?shutter_speed=1&gain=1', {method: 'POST'})">Normal</button>
+        <button onclick="fetch('/update_settings?shutter_speed=10&gain=2', {method: 'POST'})">Night 1</button>
+        <button onclick="fetch('/update_settings?shutter_speed=20&gain=3', {method: 'POST'})">Night 2</button>
+        <button onclick="fetch('/update_settings?shutter_speed=30&gain=4', {method: 'POST'})">Night 3</button>
+        <button onclick="fetch('/update_settings?shutter_speed=40&gain=5', {method: 'POST'})">Night 4</button>
+        <button onclick="fetch('/update_settings?shutter_speed=60&gain=6', {method: 'POST'})">Night 5</button>
+        <button onclick="fetch('/update_settings?shutter_speed=70&gain=7', {method: 'POST'})">Night 6</button>
+        <button onclick="fetch('/take_photo', {method: 'POST'})">Take Photo</button>
     </div>
 </body>
 

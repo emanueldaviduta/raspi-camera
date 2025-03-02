@@ -1,7 +1,6 @@
 
 
-from urllib.request import Request
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from picamera2 import Picamera2
@@ -70,13 +69,48 @@ async def index(request: Request):
 	cpu = CPUTemperature()
 	cpu_temp = cpu.temperature
 
-	return templates.TemplateResponse("index.html", {
-        "request": request,
-        "temperature": temperature,
-        "humidity": humidity,
-        "last_motion_str": last_motion_str,
-        "cpu_temp": cpu_temp
-    })
+	HTML_PAGE =  f"""
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Camera Preview</title>
+		<meta http-echiv="refresh" content="5">
+		<style>
+			body {{ font-family: Arial, sans-serif; }}
+			.flex {{ display: flex; flex-direction:column }}
+			.camera {{ margin: auto; width: 100%; height: calc(100vw * 0.75); max-width: 1200px; max-height: 800px; }}
+			.center {{ text-align: center }}
+			.center {{ display:flex; justify-content: center; }}
+		</style>
+	</head>
+	<body class="flex">
+		<h1 class="center">Raspberry Pi Camera Preview</h1>
+    	<img class="camera" src="/video_feed" alt="Camera Preview">
+		<div class="center">
+			<p>Temperature: {temperature}C</p>
+			<p>Humidity: {humidity} %</p>
+			<p>Last motion: {last_motion_str}</p>
+			<hr>
+			<p>CPU: {cpu_temp}</p>
+		</div>
+		<div class="center">
+			<button onclick="fetch('/update_settings?shutter_speed=1&gain=1', {{method: 'POST'}})">Normal</button>
+		</div>
+		<div class="center">
+			<button onclick="fetch('/update_settings?shutter_speed=10&gain=2', {{method: 'POST'}})">Night 1</button>
+			<button onclick="fetch('/update_settings?shutter_speed=20&gain=3', {{method: 'POST'}})">Night 2</button>
+			<button onclick="fetch('/update_settings?shutter_speed=30&gain=4', {{method: 'POST'}})">Night 3</button>
+			<button onclick="fetch('/update_settings?shutter_speed=40&gain=5', {{method: 'POST'}})">Night 4</button>
+			<button onclick="fetch('/update_settings?shutter_speed=60&gain=6', {{method: 'POST'}})">Night 5</button>
+			<button onclick="fetch('/update_settings?shutter_speed=70&gain=7', {{method: 'POST'}})">Night 6</button>
+		<div class="center">
+			<button onclick="fetch('/take_photo', {{method: 'POST'}})">Take Photo</button>
+		</div>
+	</body>
+</html
+"""
+
+	return HTML_PAGE
 
 @app.post("/update_settings")
 async def update_settings(shutter_speed: int, gain: float):
@@ -86,7 +120,7 @@ async def update_settings(shutter_speed: int, gain: float):
 
 
 @app.get("/video_feed")
-async def video_feed(shutter_speed: int, gain:float):
+async def video_feed():
 	def generate():
 		while True:
 			frame = picam2.capture_array()
@@ -100,7 +134,7 @@ async def video_feed(shutter_speed: int, gain:float):
 				b"Content-Type: image/jpeg\r\n\r\n" + buf.read() + b"\r\n"
 			)
 			time.sleep(0.1)
-	return StreamingResponse(generate(shutter_speed, gain), media_type="multipart/x-mixed-replace; boundary=frame")
+	return StreamingResponse(generate(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 @app.on_event("shutdown")
 def clean_gpio():

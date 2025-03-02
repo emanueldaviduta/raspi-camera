@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Camera Preview</title>
+    <meta http-equiv="refresh" content="5">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .flex {
+            display: flex;
+            flex-direction: column
+        }
+
+        .camera {
+            margin: auto;
+            width: 100%;
+            max-width: 800px;
+            max-height: 600px;
+        }
+
+        .center {
+            text-align: center
+        }
+    </style>
+
+    <script>
+        function updateSettings() {
+            const shutterSpeed = document.getElementById('shutterSpeed').value;
+            const gain = document.getElementById('gain').value;
+            fetch(`/update_settings?shutter_speed=${shutterSpeed}&gain=${gain}`, {
+                method: 'POST'
+            });
+        }
+    </script>
+</head>
+
+<body class="flex">
+    <h1 class="center">Raspberry Pi Camera Preview</h1>
+    <img class="camera" src="/video_feed" alt="Camera Preview">
+    <div class="center">
+        <p>Temperature: {temperature}C</p>
+        <p>Humidity: {humidity} %</p>
+        <p>Last motion: {last_motion_str}</p>
+        <hr>
+        <p>CPU: {cpu_temp}</p>
+    </div>
+
+    <div class="center">
+        <label for="shutterSpeed">Shutter Speed:</label>
+        <input type="range" id="shutterSpeed" name="shutterSpeed" min="0" max="100" value="{shutter_speed}"
+            oninput="updateSettings()">
+        <label for="gain">Gain:</label>
+        <input type="range" id="gain" name="gain" min="0" max="10" step="0.1" value="{gain}" oninput="updateSettings()">
+    </div>
+</body>
+
+</html>

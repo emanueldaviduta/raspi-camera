@@ -1,7 +1,9 @@
 
 
+from urllib.request import Request
 from fastapi import FastAPI, Response
 from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.templating import Jinja2Templates
 from picamera2 import Picamera2
 import time
 import io
@@ -19,6 +21,8 @@ import socket
 #FAST Api Zone
 app = FastAPI()
 app.motion_detected = None
+templates = Jinja2Templates(directory="templates")
+
 
 #Pi Camera Zone
 picam2 = Picamera2()
@@ -54,60 +58,37 @@ sensor = Adafruit_DHT.DHT11
 gpio_pin = 18
 humidity, temperature = Adafruit_DHT.read_retry(sensor, gpio_pin)
 
-
 @app.get("/live", response_class=HTMLResponse)
-async def index(shutter_speed:int = 0, gain:float = 0.0,code: str="TH01"):
+async def index(request: Request):
 	last_motion_str="No motion detected yet"
 	if app.motion_detected:
 		time_diff = datetime.now() - app.motion_detected
 		diff_sec = str(round(time_diff.seconds % 60, 0)) + "sec"
 		diff_min = str(round(time_diff.seconds / 60, 0)) + "min"
 		last_motion_str = diff_min + diff_sec  + " ago"
-		last_motion_str += str(time_diff.seconds)
+		last_motion_str += str(app.motion_detected, "%Y-%m-%d %H:%M:%S")
 	cpu = CPUTemperature()
 	cpu_temp = cpu.temperature
-	video_html = f"<img class=\"camera\" src=\"/video_feed?shutter_speed={shutter_speed}&gain={gain}\" >"
-	#video_html = "<video autoplay playsinline class=\"camera\"><source src=\"/video_feed\" type=\"video/mp4\"></video>"
-	if code != "TH01":
-		video_html = "<h1>Cod de acces necesar</h1>"
-	HTML_PAGE =  f"""
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Camera Preview</title>
-		<meta http-echiv="refresh" content="5">
-		<style>
-			body {{ font-family: Arial, sans-serif; }}
-			.flex {{ display: flex; flex-direction:column }}
-			.camera {{ margin: auto; width: 100%; height: calc(100vw * 0.75); max-width: 1200px; max-height: 800px; }}
-			.center {{ text-align: center }}
-		</style>
-	</head>
-	<body class="flex">
-		<h1 class="center">Raspberry Pi Camera Preview</h1>
-		{video_html}
-		<div class="center">
-			<p>Temperature: {temperature}C</p>
-			<p>Humidity: {humidity} %</p>
-			<p>Last motion: {last_motion_str}</p>
-			<hr>
-			<p>CPU: {cpu_temp}</p>
-		</div>
-	</body>
-</html
-"""
 
-	return HTML_PAGE
+	return templates.TemplateResponse("index.html", {
+        "request": request,
+        "temperature": temperature,
+        "humidity": humidity,
+        "last_motion_str": last_motion_str,
+        "cpu_temp": cpu_temp
+    })
+
+@app.post("/update_settings")
+async def update_settings(shutter_speed: int, gain: float):
+	picam2.controls.ExposureTime = shutter_speed*100000
+	picam2.controls.AnalogueGain = gain
+	return {"message": "Settings updated"}
+
 
 @app.get("/video_feed")
 async def video_feed(shutter_speed: int, gain:float):
-	def generate(ss: int, gg:float):
+	def generate():
 		while True:
-			if ss != 0:
-				picam2.controls.ExposureTime = ss*100000
-			if gg != 0.0:
-				picam2.controls.AnalogueGain = gg
-
 			frame = picam2.capture_array()
 			image = Image.fromarray(frame)
 			buf = io.BytesIO()
